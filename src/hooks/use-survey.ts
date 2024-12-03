@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { apiClient } from '@/lib/api-client';
-import { calculateTotalScore, calculateMaxScore, determineCategory } from '@/lib/score-calculator';
-import { getRecommendations } from '@/lib/recommendations';
+import { calculateTotalScore } from '@/lib/score-calculator';
+import { questions } from '@/lib/survey-data';
 import type { UserData } from '@/types/survey';
-import type { SurveyResult } from '@/types/results';
 
 export function useSurvey() {
   const [currentQuestion, setCurrentQuestion] = useState(-1);
@@ -29,28 +28,16 @@ export function useSurvey() {
     };
     setScores(newScores);
 
-    if (currentQuestion + 1 === questions.length && userData) {
-      const totalScore = calculateTotalScore(newScores);
-      const maxScore = calculateMaxScore();
-      const category = determineCategory(totalScore, maxScore);
-      const recommendations = getRecommendations(category);
-
-      try {
-        await apiClient.saveUserData({
-          ...userData,
-          scores: {
-            section1: newScores[1],
-            section2: newScores[2],
-            section3: newScores[3],
-            total: totalScore,
-          },
-          category,
-          recommendations,
-        });
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to save results');
-      }
+    const totalScore = calculateTotalScore(newScores);
+    try {
+      await apiClient.saveUserData({
+        ...userData,
+        scores: newScores,
+        total: totalScore,
+      });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save results');
     }
 
     setCurrentQuestion((prev) => prev + 1);
